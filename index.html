@@ -165,7 +165,7 @@
     </header>
 
     <form class="search" id="searchForm">
-      <input id="wordInput" type="text" placeholder="Enter a business English word" autocomplete="off" aria-label="Business English word">
+      <input id="wordInput" type="text" maxlength="30" placeholder="Enter a business English word" autocomplete="off" aria-label="Business English word">
       <button type="submit">Explain</button>
     </form>
 
@@ -251,6 +251,17 @@
     };
 
     function explain(query) {
+      // Guardrails: empty check and max 30 characters
+      if (!query) {
+        resultCard.style.display = "none";
+        notFoundCard.classList.add("show");
+        result.classList.add("show");
+        return;
+      }
+      if (query.length > 30) {
+        query = query.slice(0, 30);
+      }
+
       const entry = words[query];
 
       if (!entry) {
