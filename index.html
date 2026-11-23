@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta chardet="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Business Word Helper</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --muted: #68738a;
+      --line: #dde3ec;
+      --blue: #3157d5;
+      --blue-dark: #2448b8;
+      --panel: #ffffff;
+      --wash: #f4f7fc;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkewMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: radial-gradient(circle at top, #eef3ff 0, var(--wash) 52%, #edf1f7 100%);
+    }
+    main {
+      width: min(680px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 64px 0;
+    }
+    .intro { margin-bottom: 28px; }
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(32px, 7vw, 48px);
+      letter-spacing: -0.04em;
+    }
+    .intro p { margin: 0; color: var(--muted); font-size: 17px; }
+    .search {
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 12px 35px rgba(36, 72, 184, 0.08);
+    }
+    input {
+      min-width: 0;
+      flex: 1;
+      border: 0;
+      outline: 0;
+      padding: 10px 12px;
+      font: inherit;
+      color: var(--ink);
+      background: transparent;
+    }
+    input::placeholder { color: #9aa3b5; }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 12px 20px;
+      font: 700 15px inherit;
+      color: white;
+      background: var(--blue);
+      cursor: pointer;
+      transition: transform 120ms ease, background 120ms ease;
+    }
+    button:hover { background: var(--blue-dark); }
+    button:active { transform: scale(0.98); }
+    .suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 14px 0 26px;
+    }
+    .suggestions button {
+      padding: 7px 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: 13px;
+      color: #4e5a70;
+      background: white;
+    }
+    .suggestions button:hover { border-color: #b7c4df; background: #f8faff; }
+    #result { display: none; }
+    #result.show { display: block; }
+    .result-card {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--panel);
+      box-shadow: 0 16px 45px rgba(36, 72, 184, 0.08);
+    }
+    .not-found-card {
+      display: none;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--panel);
+      box-shadow: 0 16px 45px rgba(36, 72, 184, 0.08);
+    }
+    .not-found-card.show { display: block; }
+    .not-found-card p {
+      margin: 0 0 16px;
+      color: var(--ink);
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .word-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .word-pills button {
+      padding: 8px 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink);
+      background: var(--wash);
+      cursor: pointer;
+    }
+    .word-pills button:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+      background: #f8faff;
+    }
+    .word-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--line);
+    }
+    .word-head h2 { margin: 0; font-size: 27px; }
+    .pronunciation { color: var(--blue); font-size: 15px; font-weight: 700; }
+    .content { display: grid; gap: 20px; padding: 22px 24px 24px; }
+    .label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .meaning { margin: 0; line-height: 1.65; }
+    ol { margin: 0; padding-left: 22px; }
+    li { padding-left: 5px; margin: 8px 0; line-height: 1.55; }
+    @media (max-width: 520px) {
+      main { padding-top: 36px; }
+      .search { align-items: stretch; }
+      button { padding-inline: 14px; }
+      .word-head { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="intro">
+      <h1>Business Word Helper</h1>
+      <p>Look up a word for clear, professional communication.</p>
+    </header>
+
+    <form class="search" id="searchForm">
+      <input id="wordInput" type="text" placeholder="Enter a business English word" autocomplete="off" aria-label="Business English word">
+      <button type="submit">Explain</button>
+    </form>
+
+    <div class="suggestions" id="suggestions" aria-label="Example words"></div>
+
+    <section id="result" aria-live="polite">
+      <!-- Result card shown only when word is matched -->
+      <div class="result-card" id="resultCard" style="display: none;">
+        <div class="word-head">
+          <h2 id="word"></h2>
+          <span class="pronunciation" id="pronunciation"></span>
+        </div>
+        <div class="content">
+          <div>
+            <span class="label">Meaning</span>
+            <p class="meaning" id="meaning"></p>
+          </div>
+          <div>
+            <span class="label">Examples</span>
+            <ol id="examples"></ol>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fallback card shown when word is not in dictionary -->
+      <div class="not-found-card" id="notFoundCard">
+        <p>Word not in list yet. Try one of these:</p>
+        <div class="word-pills" id="fallbackList"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // A small built-in dictionary keeps this app fully offline with 10 business words.
+    const words = {
+      align: { pronunciation: "uh-LINE", meaning: "To bring people, plans, or goals into agreement so everyone works together toward the same target.", examples: ["Let us schedule a call to ensure both teams align on the project priorities.", "We need to align our sales strategy with the new quarterly budget."] },
+      budget: { pronunciation: "BUD-jit", meaning: "A plan that shows how much money can be spent.", examples: ["Our team needs to review the budget before we approve this purchase.", "Please send me a report if the project goes over budget."] },
+      deadline: { pronunciation: "DED-line", meaning: "The last date or time when work must be finished.", examples: ["The deadline for the proposal is Friday at noon.", "We will need extra support if we cannot meet the deadline."] },
+      revenue: { pronunciation: "REV-en-yoo", meaning: "The money a company earns from sales or services.", examples: ["The new campaign helped increase monthly revenue.", "We expect revenue to grow as we enter the new market."] },
+      invoice: { pronunciation: "IN-voys", meaning: "A document that asks a customer to pay for goods or services.", examples: ["Please send the invoice to our finance department.", "We will process the invoice after the work is complete."] },
+      negotiate: { pronunciation: "neh-GOH-shee-ayt", meaning: "To discuss terms in order to reach an agreement.", examples: ["We can negotiate the price before signing the contract.", "My manager will negotiate with the supplier about delivery times."] },
+      feedback: { pronunciation: "FEED-bak", meaning: "Useful opinions or information about work or performance.", examples: ["Please share your feedback after the presentation.", "The customer gave positive feedback about our new service."] },
+      agenda: { pronunciation: "uh-JEN-duh", meaning: "A list of topics to discuss at a meeting.", examples: ["Please review the agenda before our meeting.", "Let us keep the discussion focused on the topics in the agenda."] },
+      strategy: { pronunciation: "STRAT-uh-jee", meaning: "A clear plan for achieving an important business goal.", examples: ["Our strategy is to build trust with small local businesses.", "The sales team met to discuss the strategy for next quarter."] },
+      stakeholder: { pronunciation: "STAKE-hohl-dur", meaning: "A person or group with an interest in a project's result.", examples: ["We should ask every stakeholder to review the plan.", "The stakeholder meeting will explain the expected benefits."] }
+    };
+
+    const form = document.getElementById("searchForm");
+    const input = document.getElementById("wordInput");
+    const result = document.getElementById("result");
+    const resultCard = document.getElementById("resultCard");
+    const notFoundCard = document.getElementById("notFoundCard");
+    const fallbackList = document.getElementById("fallbackList");
+    const suggestions = document.getElementById("suggestions");
+
+    // Populate the 10 built-in example word buttons at top and in the fallback card
+    Object.keys(words).forEach((name) => {
+      // Top suggestion button
+      const topBtn = document.createElement("button");
+      topBtn.type = "button";
+      topBtn.textContent = name;
+      topBtn.addEventListener("click", () => {
+        input.value = name;
+        explain(name);
+      });
+      suggestions.appendChild(topBtn);
+
+      // Fallback list button
+      const fallbackBtn = document.createElement("button");
+      fallbackBtn.type = "button";
+      fallbackBtn.textContent = name;
+      fallbackBtn.addEventListener("click", () => {
+        input.value = name;
+        explain(name);
+      });
+      fallbackList.appendChild(fallbackBtn);
+    });
+
+    // Handle form submit
+    form.onsubmit = (event) => {
+      event.preventDefault();
+      explain(input.value.trim().toLowerCase());
+    };
+
+    function explain(query) {
+      const entry = words[query];
+
+      if (!entry) {
+        // If word is not found, hide result card and show list of 10 words
+        resultCard.style.display = "none";
+        notFoundCard.classList.add("show");
+      } else {
+        // If word is found, display its details and hide not-found card
+        notFoundCard.classList.remove("show");
+
+        const displayWord = query.charAt(0).toUpperCase() + query.slice(1);
+        document.getElementById("word").textContent = displayWord;
+        document.getElementById("pronunciation").textContent = entry.pronunciation;
+        document.getElementById("meaning").textContent = entry.meaning;
+
+        const list = document.getElementById("examples");
+        list.replaceChildren();
+        entry.examples.forEach((sentence) => {
+          const item = document.createElement("li");
+          item.textContent = sentence;
+          list.appendChild(item);
+        });
+
+        resultCard.style.display = "block";
+      }
+
+      result.classList.add("show");
+    }
+  </script>
+</body>
+</html>
